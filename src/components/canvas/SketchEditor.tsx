@@ -73,7 +73,10 @@ export default function SketchEditor({
           if (hasLoadedRef.current || !initialContent) {
             isDirtyRef.current = true;
             // Optimize: only trigger React re-render if the status is not already unsaved
-            setSaveStatus((prev) => (prev !== "unsaved" ? "unsaved" : prev));
+            // Use setTimeout to avoid synchronous state updates during Tldraw render phase
+            setTimeout(() => {
+              setSaveStatus((prev) => (prev !== "unsaved" ? "unsaved" : prev));
+            }, 0);
           }
         },
         { source: "user", scope: "document" }
