@@ -24,6 +24,10 @@ export default function RepoDetailPage() {
   const [newPageName, setNewPageName] = useState("");
   const [creating, setCreating] = useState(false);
 
+  // Delete page modal
+  const [pageToDelete, setPageToDelete] = useState<GitHubFileInfo | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   async function fetchPages() {
     await Promise.resolve();
     setLoading(true);
@@ -135,6 +139,39 @@ export default function RepoDetailPage() {
       setError(err instanceof Error ? err.message : "Failed to initialize");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleDeletePage() {
+    if (!pageToDelete) return;
+
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/github/files", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          owner,
+          repo,
+          path: pageToDelete.path,
+          sha: pageToDelete.sha,
+          message: `Delete page: ${pageToDelete.name.replace(/\.json$/, "")}`,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete page");
+      }
+
+      // Remove from pages state
+      setPages((prev) => prev.filter((p) => p.sha !== pageToDelete.sha));
+      setPageToDelete(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete page");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -261,7 +298,24 @@ export default function RepoDetailPage() {
                   padding="none"
                   id={`page-${pageName}`}
                 >
-                  <div className="p-5">
+                  <div className="p-5 relative group">
+                    {/* Delete Page Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPageToDelete(page);
+                      }}
+                      className="absolute top-3 right-3 p-1.5 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)]/90 text-[var(--text-tertiary)] hover:text-[var(--accent-red)] hover:bg-[var(--accent-red)]/15 border border-[var(--border-subtle)] transition-all cursor-pointer opacity-0 group-hover:opacity-100 z-10"
+                      title="Delete Page"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                    </button>
+
                     {/* Page preview placeholder */}
                     <div className="w-full h-28 rounded-[var(--radius-md)] bg-[var(--bg-primary)] border border-[var(--border-subtle)] mb-4 flex items-center justify-center overflow-hidden">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-[var(--text-muted)] opacity-40">
@@ -353,6 +407,41 @@ export default function RepoDetailPage() {
             </code>
           </p>
         </label>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!pageToDelete}
+        onClose={() => setPageToDelete(null)}
+        title="Delete Page"
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => setPageToDelete(null)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDeletePage}
+              loading={deleting}
+              id="delete-page-confirm"
+            >
+              Delete Page
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-[var(--text-secondary)]">
+            Are you sure you want to delete <span className="font-semibold text-[var(--text-primary)] capitalize">{pageToDelete?.name.replace(/\.json$/, "")}</span>?
+          </p>
+          <p className="text-xs text-[var(--accent-red)] font-medium">
+            This action will permanently delete the JSON file from your GitHub repository. This cannot be undone.
+          </p>
+        </div>
       </Modal>
     </>
   );
