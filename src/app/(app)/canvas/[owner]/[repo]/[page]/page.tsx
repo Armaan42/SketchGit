@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { FullPageSpinner } from "../../../../../../components/ui/Spinner";
-import ErrorBoundary from "../../../../../../components/ui/ErrorBoundary";
+import { FullPageSpinner } from "@/components/ui/Spinner";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 // tldraw MUST be loaded client-side only (no SSR)
 const SketchEditor = dynamic(
-  () => import("../../../../../../components/canvas/SketchEditor"),
+  () => import("@/components/canvas/SketchEditor"),
   { ssr: false }
 );
 

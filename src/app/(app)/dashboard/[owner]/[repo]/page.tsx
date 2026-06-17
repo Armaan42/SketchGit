@@ -302,6 +302,7 @@ export default function RepoDetailPage() {
                     {/* Delete Page Button */}
                     <button
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         setPageToDelete(page);
                       }}
