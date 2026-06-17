@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { Excalidraw } from "@excalidraw/excalidraw";
 import SaveToolbar from "./SaveToolbar";
 import { wrapSnapshot, unwrapSnapshot, isValidSketchFile } from "@/lib/sketch-file";
@@ -43,7 +43,7 @@ export default function SketchEditor({
   }, []);
 
   // We parse the initial data to pass to Excalidraw's initialData prop
-  const getInitialData = () => {
+  const initialData = useMemo(() => {
     if (!initialContent) return null;
     try {
       const parsed = JSON.parse(initialContent);
@@ -63,9 +63,7 @@ export default function SketchEditor({
       console.error("Failed to parse initial content:", err);
     }
     return null;
-  };
-
-  const initialData = getInitialData();
+  }, [initialContent]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChange = useCallback((elements: readonly any[], appState: any) => {
@@ -197,14 +195,17 @@ export default function SketchEditor({
         initialData={initialData || undefined}
         onChange={handleChange}
         theme="dark"
-        UIOptions={{
-          canvasActions: {
-            toggleTheme: false,
-            export: false,
-            loadScene: false,
-            saveToActiveFile: false,
-          },
-        }}
+        UIOptions={useMemo(
+          () => ({
+            canvasActions: {
+              toggleTheme: false,
+              export: false,
+              loadScene: false,
+              saveToActiveFile: false,
+            },
+          }),
+          []
+        )}
       />
       <SaveToolbar
         owner={owner}
