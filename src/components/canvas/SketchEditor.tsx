@@ -22,7 +22,7 @@ export default function SketchEditor({
   initialContent,
   initialSha,
 }: SketchEditorProps) {
-  const editorRef = useRef<Editor | null>(null);
+  const [editor, setEditor] = useState<Editor | null>(null);
   const [sha, setSha] = useState<string | null>(initialSha || null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -32,28 +32,22 @@ export default function SketchEditor({
   // Load initial content into the editor when it mounts
   const handleMount = useCallback(
     (editor: Editor) => {
-      editorRef.current = editor;
+      setEditor(editor);
 
       if (initialContent && !hasLoadedRef.current) {
         try {
+          // If we have a persistenceKey, Tldraw will load from IndexedDB automatically.
+          // But if this is the first time (no local data yet), or we want to ensure GitHub
+          // data is loaded initially, we can safely let it load here.
           const parsed = JSON.parse(initialContent);
           if (isValidSketchFile(parsed)) {
             const data = unwrapSnapshot(parsed);
-            // Only load if there's actual data
             if (data && Object.keys(data).length > 0) {
-              // tldraw's getSnapshot() returns { document, session? }
-              // Handle both formats: full snapshot or raw StoreSnapshot { store, schema }
               if (data.store && data.schema) {
-                // If it is a raw StoreSnapshot, wrap it as document
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 loadSnapshot(editor.store, { document: data as any });
               } else if (data.document) {
-                // If it contains a nested document/session snapshot, load directly
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 loadSnapshot(editor.store, data as any);
               } else {
-                // Fallback
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 loadSnapshot(editor.store, { document: data as any });
               }
             }
@@ -66,31 +60,28 @@ export default function SketchEditor({
           setErrorMessage("Failed to load canvas data. The file may be corrupted.");
         }
       }
-
-      // Listen for store changes to track dirty state
-      const unsub = editor.store.listen(
-        () => {
-          if (hasLoadedRef.current || !initialContent) {
-            isDirtyRef.current = true;
-            // Optimize: only trigger React re-render if the status is not already unsaved
-            // Use setTimeout to avoid synchronous state updates during Tldraw render phase
-            setTimeout(() => {
-              setSaveStatus((prev) => (prev !== "unsaved" ? "unsaved" : prev));
-            }, 0);
-          }
-        },
-        { source: "user", scope: "document" }
-      );
-
-      return () => {
-        unsub();
-      };
     },
     [initialContent]
   );
 
+  // Listen for store changes to track dirty state safely outside of Tldraw's render
+  useEffect(() => {
+    if (!editor) return;
+
+    const unsub = editor.store.listen(
+      () => {
+        if (hasLoadedRef.current || !initialContent) {
+          isDirtyRef.current = true;
+          setSaveStatus((prev) => (prev !== "unsaved" ? "unsaved" : prev));
+        }
+      },
+      { source: "user", scope: "document" }
+    );
+
+    return () => unsub();
+  }, [editor, initialContent]);
+
   const handleSave = useCallback(async () => {
-    const editor = editorRef.current;
     if (!editor) return;
 
     setSaveStatus("saving");
@@ -149,7 +140,7 @@ export default function SketchEditor({
         err instanceof Error ? err.message : "Failed to save"
       );
     }
-  }, [owner, repo, page, sha]);
+  }, [editor, owner, repo, page, sha]);
 
   const handleReload = useCallback(() => {
     window.location.reload();
@@ -190,7 +181,10 @@ export default function SketchEditor({
         height: "100vh",
       }}
     >
-      <Tldraw onMount={handleMount} />
+      <Tldraw 
+        persistenceKey={`sketchgit-${owner}-${repo}-${page}`}
+        onMount={handleMount} 
+      />
       <SaveToolbar
         owner={owner}
         repo={repo}
