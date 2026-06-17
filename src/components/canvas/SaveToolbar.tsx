@@ -62,8 +62,8 @@ export default function SaveToolbar({
 
   return (
     <>
-      {/* Top toolbar */}
-      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-4 pointer-events-none">
+      {/* Bottom toolbar */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-4 pointer-events-none">
         {/* Left: Navigation */}
         <div className="pointer-events-auto">
           <Link
@@ -146,7 +146,7 @@ export default function SaveToolbar({
 
       {/* Error / Conflict banner */}
       {(status === "error" || status === "conflict") && errorMessage && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[300] animate-fade-in-up">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[300] animate-fade-in">
           <div className="flex items-center gap-3 px-5 py-3 rounded-[var(--radius-lg)] glass-strong shadow-[var(--shadow-lg)] border border-[var(--accent-red)]/30">
             <span className="text-sm text-[var(--accent-red)]">
               {errorMessage}
