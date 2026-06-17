@@ -155,15 +155,15 @@ body {
 }
 
 .animate-fade-in {
-  animation: fade-in var(--transition-base) ease-out;
+  animation: fade-in var(--transition-base);
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up var(--transition-slow) ease-out;
+  animation: fade-in-up var(--transition-slow);
 }
 
 .animate-scale-in {
-  animation: scale-in var(--transition-base) ease-out;
+  animation: scale-in var(--transition-base);
 }
 
 .animate-shimmer {
@@ -188,7 +188,7 @@ body {
 /* ─── Stagger children fade-in ─────────────────────────────────── */
 .stagger-children > * {
   opacity: 0;
-  animation: fade-in-up var(--transition-slow) ease-out forwards;
+  animation: fade-in-up var(--transition-slow) forwards;
 }
 .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
 .stagger-children > *:nth-child(2) { animation-delay: 60ms; }
