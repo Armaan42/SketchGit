@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: "SketchGit — GitHub-Native Visual Workspace",
   description:
     "An infinite canvas where every page is a JSON file committed to your GitHub repo. Diagrams that live with your code, with free version history via commits.",
-  keywords: ["diagram", "sketch", "github", "whiteboard", "tldraw", "visual workspace"],
+  keywords: ["diagram", "sketch", "github", "whiteboard", "excalidraw", "visual workspace"],
   openGraph: {
     title: "SketchGit",
     description: "GitHub-native visual workspace. Diagrams that live with your code.",
