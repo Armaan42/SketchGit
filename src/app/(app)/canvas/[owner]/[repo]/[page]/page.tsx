@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { FullPageSpinner } from "../../../../../../components/ui/Spinner";
+import ErrorBoundary from "../../../../../../components/ui/ErrorBoundary";
 
 // tldraw MUST be loaded client-side only (no SSR)
 const SketchEditor = dynamic(
@@ -95,12 +96,14 @@ export default function CanvasPage() {
   }
 
   return (
-    <SketchEditor
-      owner={owner}
-      repo={repo}
-      page={page}
-      initialContent={content}
-      initialSha={sha}
-    />
+    <ErrorBoundary>
+      <SketchEditor
+        owner={owner}
+        repo={repo}
+        page={page}
+        initialContent={content}
+        initialSha={sha}
+      />
+    </ErrorBoundary>
   );
 }

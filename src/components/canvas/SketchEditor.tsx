@@ -72,7 +72,8 @@ export default function SketchEditor({
         () => {
           if (hasLoadedRef.current || !initialContent) {
             isDirtyRef.current = true;
-            setSaveStatus("unsaved");
+            // Optimize: only trigger React re-render if the status is not already unsaved
+            setSaveStatus((prev) => (prev !== "unsaved" ? "unsaved" : prev));
           }
         },
         { source: "user", scope: "document" }
@@ -176,7 +177,16 @@ export default function SketchEditor({
   }, []);
 
   return (
-    <div className="fixed inset-0" id="sketch-editor-container">
+    <div
+      className="fixed inset-0"
+      id="sketch-editor-container"
+      style={{
+        position: "fixed",
+        inset: 0,
+        width: "100vw",
+        height: "100vh",
+      }}
+    >
       <Tldraw onMount={handleMount} />
       <SaveToolbar
         owner={owner}

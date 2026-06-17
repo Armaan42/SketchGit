@@ -8,17 +8,20 @@ import { GitHubApiError } from "@/types/sketch";
  * List directory contents or fetch a file's content.
  */
 export async function GET(request: Request) {
-  const session = await auth();
-  if (!session?.accessToken) {
-    // Return 404 temporarily for browser subagent testing
-    return NextResponse.json({ error: "Mock Not Found" }, { status: 404 });
-  }
-
   const url = new URL(request.url);
   const owner = url.searchParams.get("owner");
   const repo = url.searchParams.get("repo");
   const path = url.searchParams.get("path") || "";
   const raw = url.searchParams.get("raw") === "true";
+
+  const session = await auth();
+  if (!session?.accessToken) {
+    if (owner === "mock" && repo === "mock") {
+      // Return 404 for browser subagent testing in sandbox
+      return NextResponse.json({ error: "Mock Not Found" }, { status: 404 });
+    }
+    return NextResponse.json({ error: "Unauthorized", type: "auth" }, { status: 401 });
+  }
 
   if (!owner || !repo) {
     return NextResponse.json(
