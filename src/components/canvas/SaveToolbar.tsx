@@ -63,7 +63,7 @@ export default function SaveToolbar({
   return (
     <>
       {/* Top toolbar */}
-      <div className="fixed top-3 left-3 right-3 z-[300] flex items-center justify-between pointer-events-none">
+      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-4 pointer-events-none">
         {/* Left: Navigation */}
         <div className="pointer-events-auto">
           <Link
