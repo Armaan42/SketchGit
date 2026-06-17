@@ -212,3 +212,10 @@ body {
   background: var(--accent-primary);
   color: white;
 }
+
+/* ─── Excalidraw Overrides ─────────────────────────────────────── */
+.excalidraw .layer-ui__library,
+.excalidraw .sidebar-trigger,
+.excalidraw .sidebar-button[aria-label="Library"] {
+  display: none !important;
+}

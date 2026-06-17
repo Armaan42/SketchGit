@@ -197,6 +197,14 @@ export default function SketchEditor({
         initialData={initialData || undefined}
         onChange={handleChange}
         theme="dark"
+        UIOptions={{
+          canvasActions: {
+            toggleTheme: false,
+            export: false,
+            loadScene: false,
+            saveToActiveFile: false,
+          },
+        }}
       />
       <SaveToolbar
         owner={owner}
