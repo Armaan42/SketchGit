@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Tldraw, getSnapshot, loadSnapshot, type Editor } from "tldraw";
+import { Excalidraw } from "@excalidraw/excalidraw";
 import SaveToolbar from "./SaveToolbar";
 import { wrapSnapshot, unwrapSnapshot, isValidSketchFile } from "@/lib/sketch-file";
 
@@ -22,74 +22,80 @@ export default function SketchEditor({
   initialContent,
   initialSha,
 }: SketchEditorProps) {
-  const [editor, setEditor] = useState<Editor | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const [sha, setSha] = useState<string | null>(initialSha || null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
   const hasLoadedRef = useRef(false);
   const isDirtyRef = useRef(false);
+  const skipNextChangeRef = useRef(false);
 
-  // Load initial content into the editor when it mounts
-  const handleMount = useCallback(
-    (editor: Editor) => {
-      setEditor(editor);
-
-      if (initialContent && !hasLoadedRef.current) {
-        try {
-          // If we have a persistenceKey, Tldraw will load from IndexedDB automatically.
-          // But if this is the first time (no local data yet), or we want to ensure GitHub
-          // data is loaded initially, we can safely let it load here.
-          const parsed = JSON.parse(initialContent);
-          if (isValidSketchFile(parsed)) {
-            const data = unwrapSnapshot(parsed);
-            if (data && Object.keys(data).length > 0) {
-              if (data.store && data.schema) {
-                loadSnapshot(editor.store, { document: data as any });
-              } else if (data.document) {
-                loadSnapshot(editor.store, data as any);
-              } else {
-                loadSnapshot(editor.store, { document: data as any });
-              }
-            }
-          }
-          hasLoadedRef.current = true;
-          setSaveStatus("idle");
-        } catch (err) {
-          console.error("Failed to load snapshot:", err);
-          setSaveStatus("error");
-          setErrorMessage("Failed to load canvas data. The file may be corrupted.");
+  // We parse the initial data to pass to Excalidraw's initialData prop
+  const getInitialData = () => {
+    if (!initialContent) return null;
+    try {
+      const parsed = JSON.parse(initialContent);
+      if (isValidSketchFile(parsed)) {
+        const data = unwrapSnapshot(parsed);
+        // Excalidraw expects { elements, appState, files }
+        // If it's old Tldraw data, it won't have elements, so it will just be ignored
+        if (data && data.elements) {
+          return {
+            elements: data.elements,
+            appState: data.appState || {},
+            files: data.files || null,
+          };
         }
       }
-    },
-    [initialContent]
-  );
+    } catch (err) {
+      console.error("Failed to parse initial content:", err);
+    }
+    return null;
+  };
 
-  // Listen for store changes to track dirty state safely outside of Tldraw's render
-  useEffect(() => {
-    if (!editor) return;
+  const initialData = getInitialData();
 
-    const unsub = editor.store.listen(
-      () => {
-        if (hasLoadedRef.current || !initialContent) {
-          isDirtyRef.current = true;
-          setSaveStatus((prev) => (prev !== "unsaved" ? "unsaved" : prev));
-        }
-      },
-      { source: "user", scope: "document" }
-    );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleChange = useCallback((elements: readonly any[], appState: any) => {
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      return;
+    }
 
-    return () => unsub();
-  }, [editor, initialContent]);
+    if (skipNextChangeRef.current) {
+      skipNextChangeRef.current = false;
+      return;
+    }
+
+    isDirtyRef.current = true;
+    setSaveStatus((prev) => (prev !== "unsaved" ? "unsaved" : prev));
+  }, []);
 
   const handleSave = useCallback(async () => {
-    if (!editor) return;
+    if (!excalidrawAPI) return;
 
     setSaveStatus("saving");
     setErrorMessage(null);
 
     try {
-      // Get the current document snapshot from tldraw
-      const snapshot = getSnapshot(editor.store);
+      const elements = excalidrawAPI.getSceneElements();
+      const appState = excalidrawAPI.getAppState();
+      const files = excalidrawAPI.getFiles();
+
+      // Only save the necessary appState fields to avoid massive files
+      const snapshot = {
+        type: "excalidraw",
+        elements,
+        appState: {
+          viewBackgroundColor: appState.viewBackgroundColor,
+          currentItemStrokeColor: appState.currentItemStrokeColor,
+          currentItemBackgroundColor: appState.currentItemBackgroundColor,
+        },
+        files,
+      };
+
       const wrapped = wrapSnapshot(snapshot);
       const content = JSON.stringify(wrapped, null, 2);
 
@@ -128,7 +134,6 @@ export default function SketchEditor({
       isDirtyRef.current = false;
       setSaveStatus("saved");
 
-      // Reset status after a moment
       setTimeout(() => {
         if (!isDirtyRef.current) {
           setSaveStatus("idle");
@@ -140,7 +145,7 @@ export default function SketchEditor({
         err instanceof Error ? err.message : "Failed to save"
       );
     }
-  }, [editor, owner, repo, page, sha]);
+  }, [excalidrawAPI, owner, repo, page, sha]);
 
   const handleReload = useCallback(() => {
     window.location.reload();
@@ -156,8 +161,7 @@ export default function SketchEditor({
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sha]);
+  }, [handleSave]);
 
   // Warn about unsaved changes on page leave
   useEffect(() => {
@@ -181,9 +185,11 @@ export default function SketchEditor({
         height: "100vh",
       }}
     >
-      <Tldraw 
-        persistenceKey={`sketchgit-${owner}-${repo}-${page}`}
-        onMount={handleMount} 
+      <Excalidraw
+        excalidrawAPI={(api) => setExcalidrawAPI(api)}
+        initialData={initialData || undefined}
+        onChange={handleChange}
+        theme="dark"
       />
       <SaveToolbar
         owner={owner}
