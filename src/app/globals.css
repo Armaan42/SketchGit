@@ -187,7 +187,7 @@ body {
 
 /* ─── Stagger children fade-in ─────────────────────────────────── */
 .stagger-children > * {
-  opacity: 0;
+  /* opacity: 0; removed to prevent invisible fallback if animation fails */
   animation: fade-in-up var(--transition-slow) forwards;
 }
 .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
