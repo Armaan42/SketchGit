@@ -32,6 +32,16 @@ export default function SketchEditor({
   const isDirtyRef = useRef(false);
   const skipNextChangeRef = useRef(false);
 
+  // Allow Excalidraw 500ms to settle its initial render before we start tracking changes.
+  // This prevents the "Unsaved changes" status from appearing immediately on load,
+  // while ensuring we don't accidentally ignore the user's first actual stroke.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      hasLoadedRef.current = true;
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   // We parse the initial data to pass to Excalidraw's initialData prop
   const getInitialData = () => {
     if (!initialContent) return null;
@@ -59,10 +69,7 @@ export default function SketchEditor({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChange = useCallback((elements: readonly any[], appState: any) => {
-    if (!hasLoadedRef.current) {
-      hasLoadedRef.current = true;
-      return;
-    }
+    if (!hasLoadedRef.current) return;
 
     if (skipNextChangeRef.current) {
       skipNextChangeRef.current = false;
