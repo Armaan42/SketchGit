@@ -108,8 +108,8 @@ export default function SketchEditor({
 
     try {
       // Get the current document snapshot from tldraw
-      const { document } = getSnapshot(editor.store);
-      const wrapped = wrapSnapshot(document);
+      const snapshot = getSnapshot(editor.store);
+      const wrapped = wrapSnapshot(snapshot);
       const content = JSON.stringify(wrapped, null, 2);
 
       const body: Record<string, string> = {

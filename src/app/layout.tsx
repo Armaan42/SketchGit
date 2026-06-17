@@ -28,6 +28,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <link rel="stylesheet" href="https://unpkg.com/tldraw@5.1.1/tldraw.css" />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <SessionProvider>{children}</SessionProvider>
       </body>
