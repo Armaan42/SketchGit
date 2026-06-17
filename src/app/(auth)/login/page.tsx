@@ -1,9 +1,34 @@
 "use client";
 
 import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, Suspense } from "react";
 import Button from "@/components/ui/Button";
+
+function LoginErrorBanner() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+
+  if (!error) return null;
+
+  let message = "An error occurred during authentication.";
+  if (error === "Configuration") {
+    message = "Server configuration error. Please ensure AUTH_SECRET and GitHub OAuth credentials are set correctly in your environment.";
+  } else if (error === "AccessDenied") {
+    message = "Access denied. The authorization request was cancelled or the token has expired.";
+  } else if (error === "OAuthSignin") {
+    message = "Failed to start the GitHub sign-in process. Please try again.";
+  } else if (error === "OAuthCallback") {
+    message = "Failed to complete authentication. Verify that your GitHub OAuth App callback URL matches this site's URL.";
+  }
+
+  return (
+    <div className="mb-6 p-4 rounded-[var(--radius-lg)] bg-[var(--accent-red)]/10 border border-[var(--accent-red)]/20 text-sm text-[var(--accent-red)] text-center animate-fade-in">
+      <span className="font-semibold">Sign-in failed:</span> {message}
+      <p className="text-[10px] mt-1.5 opacity-70">Code: {error}</p>
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const { data: session, status } = useSession();
@@ -80,6 +105,9 @@ export default function LoginPage() {
           className="mt-10 glass rounded-[var(--radius-xl)] p-8 w-full max-w-sm animate-fade-in-up shadow-[var(--shadow-lg)]"
           style={{ animationDelay: "250ms" }}
         >
+          <Suspense fallback={null}>
+            <LoginErrorBanner />
+          </Suspense>
           <Button
             variant="primary"
             size="lg"

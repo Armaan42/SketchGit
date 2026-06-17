@@ -22,6 +22,11 @@ export default function DashboardPage() {
         const res = await fetch("/api/github/repos?per_page=100");
         if (!res.ok) {
           const data = await res.json();
+          if (res.status === 401 || data.type === "auth") {
+            const { signOut } = await import("next-auth/react");
+            signOut({ callbackUrl: "/login?error=AccessDenied" });
+            return;
+          }
           throw new Error(data.error || "Failed to fetch repos");
         }
         const data = await res.json();
@@ -54,6 +59,14 @@ export default function DashboardPage() {
       </>
     );
   }
+
+  console.log("Dashboard render:", {
+    reposType: typeof repos,
+    reposIsArray: Array.isArray(repos),
+    filteredReposLength: filteredRepos?.length,
+    error,
+    loading
+  });
 
   return (
     <>

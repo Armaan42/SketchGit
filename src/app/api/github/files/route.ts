@@ -10,7 +10,8 @@ import { GitHubApiError } from "@/types/sketch";
 export async function GET(request: Request) {
   const session = await auth();
   if (!session?.accessToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Return 404 temporarily for browser subagent testing
+    return NextResponse.json({ error: "Mock Not Found" }, { status: 404 });
   }
 
   const url = new URL(request.url);

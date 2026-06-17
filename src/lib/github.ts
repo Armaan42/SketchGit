@@ -32,25 +32,44 @@ async function handleResponse(res: Response): Promise<Response> {
   if (res.ok) return res;
 
   const body = await res.text().catch(() => "");
+  let message = "";
+  try {
+    if (body) {
+      const json = JSON.parse(body);
+      message = json.message || "";
+    }
+  } catch {
+    // Ignore parsing issues
+  }
+
+  const errMessage = message || body;
 
   switch (res.status) {
     case 401:
       throw new GitHubApiError(
         "auth",
-        "GitHub authentication failed. Please sign in again.",
+        errMessage || "GitHub authentication failed. Please sign in again.",
         401
       );
-    case 403:
-      if (res.headers.get("x-ratelimit-remaining") === "0") {
+    case 403: {
+      const limitRemaining = res.headers.get("x-ratelimit-remaining");
+      const isRateLimit =
+        limitRemaining === "0" ||
+        errMessage.toLowerCase().includes("rate limit") ||
+        errMessage.toLowerCase().includes("abuse detection") ||
+        errMessage.toLowerCase().includes("secondary limit");
+
+      if (isRateLimit) {
         throw new GitHubApiError(
           "rate_limit",
-          "GitHub API rate limit exceeded. Please wait a moment.",
+          errMessage || "GitHub API rate limit exceeded. Please wait a moment.",
           403
         );
       }
-      throw new GitHubApiError("auth", "Access forbidden.", 403);
+      throw new GitHubApiError("auth", errMessage || "Access forbidden.", 403);
+    }
     case 404:
-      throw new GitHubApiError("not_found", "Resource not found.", 404);
+      throw new GitHubApiError("not_found", errMessage || "Resource not found.", 404);
     case 409:
       throw new GitHubApiError(
         "conflict",
@@ -60,13 +79,13 @@ async function handleResponse(res: Response): Promise<Response> {
     case 422:
       throw new GitHubApiError(
         "validation",
-        `Validation failed: ${body}`,
+        `Validation failed: ${errMessage}`,
         422
       );
     default:
       throw new GitHubApiError(
         "unknown",
-        `GitHub API error (${res.status}): ${body}`,
+        `GitHub API error (${res.status}): ${errMessage}`,
         res.status
       );
   }

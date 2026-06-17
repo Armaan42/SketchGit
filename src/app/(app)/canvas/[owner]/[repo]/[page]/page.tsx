@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { FullPageSpinner } from "@/components/ui/Spinner";
+import { FullPageSpinner } from "../../../../../../components/ui/Spinner";
 
 // tldraw MUST be loaded client-side only (no SSR)
 const SketchEditor = dynamic(
-  () => import("@/components/canvas/SketchEditor"),
+  () => import("../../../../../../components/canvas/SketchEditor"),
   { ssr: false }
 );
 
@@ -37,6 +37,11 @@ export default function CanvasPage() {
 
         if (!res.ok) {
           const data = await res.json();
+          if (res.status === 401 || data.type === "auth") {
+            const { signOut } = await import("next-auth/react");
+            signOut({ callbackUrl: "/login?error=AccessDenied" });
+            return;
+          }
           throw new Error(data.error || "Failed to load page");
         }
 

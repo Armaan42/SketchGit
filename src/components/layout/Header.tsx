@@ -94,6 +94,7 @@ export default function Header({ breadcrumbs }: HeaderProps) {
                 className="flex items-center gap-2 p-1.5 rounded-[var(--radius-md)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
               >
                 {session.user.image ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={session.user.image}
                     alt={session.user.name || "User"}

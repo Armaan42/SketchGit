@@ -21,6 +21,7 @@ export async function GET(request: Request) {
 
   try {
     const repos = await listUserRepos(session.accessToken, page, perPage);
+    console.log("API returned repos:", typeof repos, Array.isArray(repos), Array.isArray(repos) ? repos.length : repos);
     return NextResponse.json(repos);
   } catch (error) {
     if (error instanceof GitHubApiError) {

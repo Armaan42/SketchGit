@@ -24,12 +24,8 @@ export default function RepoDetailPage() {
   const [newPageName, setNewPageName] = useState("");
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    fetchPages();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [owner, repo]);
-
   async function fetchPages() {
+    await Promise.resolve();
     setLoading(true);
     setError(null);
     try {
@@ -43,6 +39,11 @@ export default function RepoDetailPage() {
       }
       if (!res.ok) {
         const data = await res.json();
+        if (res.status === 401 || data.type === "auth") {
+          const { signOut } = await import("next-auth/react");
+          signOut({ callbackUrl: "/login?error=AccessDenied" });
+          return;
+        }
         throw new Error(data.error || "Failed to load pages");
       }
       const data: GitHubFileInfo[] = await res.json();
@@ -58,6 +59,12 @@ export default function RepoDetailPage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchPages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [owner, repo]);
 
   async function handleCreatePage() {
     if (!newPageName.trim()) return;

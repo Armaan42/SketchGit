@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Tldraw, getSnapshot, loadSnapshot, type Editor } from "tldraw";
-import "tldraw/tldraw.css";
 import SaveToolbar from "./SaveToolbar";
 import { wrapSnapshot, unwrapSnapshot, isValidSketchFile } from "@/lib/sketch-file";
 
@@ -42,10 +41,21 @@ export default function SketchEditor({
             const data = unwrapSnapshot(parsed);
             // Only load if there's actual data
             if (data && Object.keys(data).length > 0) {
-              // The data is a document snapshot from getSnapshot()
-              // loadSnapshot expects { document: StoreSnapshot<TLRecord> }
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              loadSnapshot(editor.store, { document: data as any });
+              // tldraw's getSnapshot() returns { document, session? }
+              // Handle both formats: full snapshot or raw StoreSnapshot { store, schema }
+              if (data.store && data.schema) {
+                // If it is a raw StoreSnapshot, wrap it as document
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                loadSnapshot(editor.store, { document: data as any });
+              } else if (data.document) {
+                // If it contains a nested document/session snapshot, load directly
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                loadSnapshot(editor.store, data as any);
+              } else {
+                // Fallback
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                loadSnapshot(editor.store, { document: data as any });
+              }
             }
           }
           hasLoadedRef.current = true;
@@ -74,30 +84,6 @@ export default function SketchEditor({
     },
     [initialContent]
   );
-
-  // Keyboard shortcut: Ctrl+S / Cmd+S
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault();
-        handleSave();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sha]);
-
-  // Warn about unsaved changes on page leave
-  useEffect(() => {
-    function handleBeforeUnload(e: BeforeUnloadEvent) {
-      if (isDirtyRef.current) {
-        e.preventDefault();
-      }
-    }
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
 
   const handleSave = useCallback(async () => {
     const editor = editorRef.current;
@@ -163,6 +149,30 @@ export default function SketchEditor({
 
   const handleReload = useCallback(() => {
     window.location.reload();
+  }, []);
+
+  // Keyboard shortcut: Ctrl+S / Cmd+S
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        handleSave();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sha]);
+
+  // Warn about unsaved changes on page leave
+  useEffect(() => {
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      if (isDirtyRef.current) {
+        e.preventDefault();
+      }
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
   return (
